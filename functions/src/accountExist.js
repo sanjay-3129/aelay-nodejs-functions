@@ -10,8 +10,8 @@ const {
 const app = express();
 
 app.get("/", (req, res) => {
-  // console.log("phone: ", req.query.phoneNumber);
-  const phoneNumber = `+${req.query.phoneNumber}`;
+  const phoneNumber = `+${req.query.phoneNumber.trim()}`;
+  console.log("phone: ", req.query.phoneNumber, phoneNumber);
   if (!phoneNumber) {
     // if (!phoneNumber && !validatePhoneNumber(phoneNumber)) {
     res.status(400).json({
@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
   } else {
     // console.log("entered else...");
     checkPhoneNumberExists(phoneNumber, (result) => {
-      // console.log("resLL: ", result);
+      console.log("resLL: ", result);
       if (result.status === "success") {
         getDocument("users", result.data.uid, (isDoc) => {
           if (isDoc.status === "success") {

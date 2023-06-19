@@ -10,7 +10,7 @@ exports.validatePhoneNumber = (phoneNumber) => {
 };
 
 exports.checkPhoneNumberExists = (phoneNumber, sendData) => {
-  // console.log("checkPhoneNumberExists:", phoneNumber);
+  console.log("checkPhoneNumberExists:", phoneNumber);
   admin
     .auth()
     .getUserByPhoneNumber(phoneNumber)
