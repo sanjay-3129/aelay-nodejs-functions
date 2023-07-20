@@ -1,12 +1,32 @@
 const express = require("express");
 const multer = require("multer");
 // const path = require("path");
+const cors = require("cors");
 const xlsx = require("xlsx");
 const fs = require("fs");
 const admin = require("firebase-admin");
 const serviceAccount = require("../aelay-firebase-cred.json");
 
 const app = express();
+
+const allowedOrigins = [
+  "http://localhost",
+  "https://aleay-admin.netlify.app",
+  "https://aelaypublish.site",
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true); // Allow requests from the allowed origins or if origin is undefined
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+};
+
+// Enable CORS with the custom options
+app.use(cors(corsOptions));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
