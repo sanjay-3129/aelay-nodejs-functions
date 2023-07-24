@@ -40,7 +40,7 @@ const storage = multer.diskStorage({
     cb(null, "./uploads");
   },
   filename: (req, file, cb) => {
-    console.log(file);
+    // console.log(file);
     // cb(null, file.originalname + path.extname(file.originalname));
     cb(null, file.originalname);
   },
@@ -52,18 +52,20 @@ const upload = multer({ storage: storage });
 app.post("/upload", upload.single("salesReport"), async (req, res, next) => {
   try {
     console.log("inside post: ", req.file, req.body);
-    const workbook = xlsx.readFile(req.file.path);
+    const workbook = xlsx.readFile(req.file.path, {
+      cellDates: true,
+    });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    // const jsonData = xlsx.utils.sheet_to_json(sheet);
     const jsonData = xlsx.utils.sheet_to_json(sheet);
-    console.log(
-      "jsonData: ",
-      jsonData[0],
-      jsonData[1],
-      jsonData[2],
-      jsonData[3],
-      jsonData[4]
-    );
+    // const jsonData = xlsx.utils.sheet_to_json(sheet, { raw: false }); // raw: false
+    // console.log(
+    //   "jsonData: ",
+    //   jsonData[0],
+    //   jsonData[1],
+    //   jsonData[2],
+    //   jsonData[3],
+    //   jsonData[4]
+    // );
 
     //check format columns, whether it is correct, else return error
     const keys = Object.keys(jsonData[0]); // [OrderId, ISBN, etc..]
@@ -92,7 +94,7 @@ app.post("/upload", upload.single("salesReport"), async (req, res, next) => {
       const getTxnPromises = [];
       const books = [];
       jsonData.forEach((record) => {
-        console.log("record: ", record);
+        // console.log("record: ", record);
         if (record.ISBN) {
           // check record order id === transaction order id
           const transactionRef = db
@@ -114,7 +116,7 @@ app.post("/upload", upload.single("salesReport"), async (req, res, next) => {
         .then((result) => {
           result.forEach((txn) => {
             const txnData = txn.data();
-            console.log("txn: ", txnData, txn.id);
+            // console.log("txn: ", txnData, txn.id);
             if (txnData === undefined) {
               const findItem = jsonData.find(
                 (row) => txn.id === row["Order Number"]
@@ -122,7 +124,7 @@ app.post("/upload", upload.single("salesReport"), async (req, res, next) => {
               newTxnList.push(findItem);
             }
           });
-          console.log("new Txn List: ", newTxnList);
+          // console.log("new Txn List: ", newTxnList);
           const createTxnPromises = [];
           const updateWalletPromises = [];
           Promise.all(bookPromises)
@@ -136,23 +138,32 @@ app.post("/upload", upload.single("salesReport"), async (req, res, next) => {
                 });
                 // console.log(val.docs.length);
               });
-              console.log("books: ", books);
+              // console.log("books: ", books);
               newTxnList.forEach((record) => {
                 const findItem = books.find(
                   (book) => book.ISBN === record.ISBN
                 );
+                // console.log(
+                //   "newData:",
+                //   record.Title,
+                //   record["Order Date"],
+                //   new Date(record["Order Date"]).getTime() + 10000
+                // );
                 if (findItem) {
-                  console.log("itemFound: ", findItem, record);
+                  // console.log("itemFound: ", findItem, record);
+                  const newData = {
+                    ...record,
+                    "Order Date":
+                      new Date(record["Order Date"]).getTime() + 10000,
+                    userId: findItem.uid,
+                    totalRoyalty:
+                      parseInt(record.Quantity) * parseFloat(findItem.royalty),
+                  };
+                  // console.log("newData:", newData);
                   const createTxnRef = db
                     .collection("transactions")
                     .doc(record["Order Number"])
-                    .set({
-                      ...record,
-                      userId: findItem.uid,
-                      totalRoyalty:
-                        parseInt(record.Quantity) *
-                        parseFloat(findItem.royalty),
-                    });
+                    .set(newData);
                   createTxnPromises.push(createTxnRef);
                   const updateWalletRef = db
                     .collection("users")
